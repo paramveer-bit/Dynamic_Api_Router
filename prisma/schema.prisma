@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  password    String
+  otp         String?
+  otpExpiry   DateTime?
+  verified    Boolean   @default(false)
+  resendCount Int       @default(0)
+  lastResend  DateTime?
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  RateLimiting RateLimiting[]
+  Request      Request[]
+}
+
+model Request {
+  id           String   @id @default(cuid())
+  ownerId      String
+  requestUrl   String
+  forwardUrl   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  caching      Boolean  @default(false)
+  cacheTime    Int?
+  rateLimiting Boolean  @default(false)
+  defaultRate  Int?
+
+  User         User           @relation(fields: [ownerId], references: [id])
+  RateLimiting RateLimiting[]
+  RequestLogs  RequestLog[]
+}
+
+// Sprate Rate limiting for each user of client if needed
+model RateLimiting {
+  id        String @id @default(cuid())
+  requestId String
+  userId    String
+
+  rate      Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Request Request @relation(fields: [requestId], references: [id])
+  User    User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, requestId])
+}
+
+model RequestLog {
+  id         String   @id @default(cuid())
+  requestId  String
+  requestUrl String
+  forwardUrl String
+  response   String
+  duration   Int
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  Request Request @relation(fields: [requestId], references: [id])
+}
