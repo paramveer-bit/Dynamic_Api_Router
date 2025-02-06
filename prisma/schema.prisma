@@ -41,6 +41,7 @@ model Request {
   cacheTime    Int?
   rateLimiting Boolean  @default(false)
   defaultRate  Int?
+  bannedUser   String[]
 
   User         User           @relation(fields: [ownerId], references: [id])
   RateLimiting RateLimiting[]
