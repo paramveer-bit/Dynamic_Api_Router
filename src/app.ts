@@ -25,10 +25,18 @@ app.use(cookieParser())
 
 // Router import
 import userRouter from "./routers/user.router"
+import requestProccessorRouter from "./routers/requestProcessor.router"
+import requestLogRouter from "./routers/requestLog.router"
+import rateLimitingRouter from "./routers/ratelimiting.router"
+import requestRouter from "./routers/request.router"
+
 
 // Roueters
 app.use("/api/v1/user", userRouter)
-
+app.use("/api/v1/request", requestRouter)
+app.use("/sendHere", requestProccessorRouter)
+app.use("/api/v1/requestLog", requestLogRouter)
+app.use("/api/v1/rateLimiting", rateLimitingRouter)
 
 
 export default app

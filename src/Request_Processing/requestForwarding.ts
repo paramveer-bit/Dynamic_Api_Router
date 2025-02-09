@@ -47,3 +47,5 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response, next
 
     return res.status(response_from_server.status).json(response_from_server.data)
 })
+
+export default request_forwarding

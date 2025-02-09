@@ -7,7 +7,7 @@ import PrismaClient from "../prismaClient/index"
 
 const verifyJwt = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const accessToken = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+        const accessToken = req.cookies?.token
 
 
         if (!accessToken) {
@@ -37,7 +37,7 @@ const verifyJwt = asyncHandler(async (req: Request, res: Response, next: NextFun
 
     } catch (error) {
         console.log(error)
-        throw new ApiError(400, "Invalid Accesstoken")
+        throw new ApiError(400, "No login token found. Login First To continue")
     }
 
 })

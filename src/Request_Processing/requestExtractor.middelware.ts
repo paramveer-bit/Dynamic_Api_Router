@@ -12,6 +12,8 @@ import RedisClient from "../Redis/redis.client"
 const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     var requestedUrl = req.path
     const { user_code, secret } = req.headers
+    console.log(requestedUrl)
+    console.log(req.url)
     if (!user_code || !secret) {
         throw new ApiError(400, "Invalid request")
     }
@@ -38,6 +40,21 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
         })
         throw new ApiError(404, "Request not found")
     }
+
+    if (request.bannedUser.includes(user_code.toString())) {
+        await PrismaClient.requestLog.create({
+            data: {
+                requestUrl: requestedUrl,
+                forwardUrl: "Not forwarded",
+                response: "User is banned",
+                statusCode: 403,
+                duration: 0,
+                userId: user_code.toString()
+            }
+        })
+        throw new ApiError(403, "User is banned")
+    }
+
     req.request = request
     req.user_code = user_code.toString()
     next()

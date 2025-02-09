@@ -126,7 +126,11 @@ const signIn = asyncHandler(async (req: Request, res: Response) => {
 
 const verifyUser = asyncHandler(async (req: Request, res: Response) => {
 
-    const { otp } = req.body;
+    const { otp, email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Invalid email")
+    }
 
     // check if otp is valid
     if (!otp) {
@@ -136,7 +140,7 @@ const verifyUser = asyncHandler(async (req: Request, res: Response) => {
     // find user with otp
     const user = await PrismaClient.user.findFirst({
         where: {
-            otp
+            email
         }
     })
 
@@ -267,22 +271,26 @@ const signOut = asyncHandler(async (req: Request, res: Response) => {
 
 const isSignedIn = asyncHandler(async (req: Request, res: Response) => {
 
-    const response = new ApiResponse("200", JSON.stringify({ message: "User is signed in" }))
+    const response = new ApiResponse("200", JSON.stringify({ "message": "User is signed in", "user_id": req.user_id }))
 
     res.status(200).json(response)
 
 })
 
 const resetPasswordWhileLoggin = asyncHandler(async (req: Request, res: Response) => {
-    const { user_id, oldPassword, newPassword } = req.body;
-
+    const { oldPassword, newPassword } = req.body;
+    const user_id = req.user_id
     // parser new password
-    const validatedData = signUpSchema.safeParse({ password: newPassword })
+    const validatedData = z.object({
+        newPassword: z.string().min(8, { message: "Password should be of at least 8 size" }).max(20, { message: "Password should be of at max 20 size" }),
+    }).safeParse({ newPassword })
+
     if (!validatedData.success) {
         throw new ApiError(400, validatedData.error.errors[0].message)
     }
 
     // find user with user_id
+
     const user = await PrismaClient.user.findFirst({
         where: {
             id: user_id
@@ -312,7 +320,6 @@ const resetPasswordWhileLoggin = asyncHandler(async (req: Request, res: Response
             password: hashedPassword
         }
     })
-
     // check if user is updated
     if (!updatedUser) {
         throw new ApiError(500, "Error in updating user")

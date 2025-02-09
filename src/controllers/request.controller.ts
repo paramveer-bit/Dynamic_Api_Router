@@ -21,6 +21,8 @@ const addNewRequest = asyncHandler(async (req: Request, res: Response) => {
 
     const { requestUrl, forwardUrl, rateLimiting, defaultRate, user_id, caching, cacheTime } = newRequestSchema.parse(req.body)
 
+    if (forwardUrl.includes("sendhere")) throw new ApiError(400, "Invalid Forward URL")
+
     const result = PrismaClient.request.create({
         data: {
             ownerId: user_id,
@@ -32,6 +34,7 @@ const addNewRequest = asyncHandler(async (req: Request, res: Response) => {
             cacheTime
         }
     })
+
 
     if (!result) throw new ApiError(500, "Internal Server Error")
 
@@ -286,4 +289,4 @@ const getListOfBannedUsers = asyncHandler(async (req: Request, res: Response) =>
 
 
 
-export { addNewRequest, getAllRequests, deleteRequest, findRequestById }
+export { addNewRequest, getAllRequests, deleteRequest, findRequestById, modifyCacheTime, modifyDefaultRateLimit, toggelRateLimiting, toggelCaching, AddBanUser, RemoveBanUser, getListOfBannedUsers }

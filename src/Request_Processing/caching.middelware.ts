@@ -54,3 +54,4 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
 })
 
 
+export default caching
