@@ -23,11 +23,11 @@ model User {
   verified    Boolean   @default(false)
   resendCount Int       @default(0)
   lastResend  DateTime?
+  secret      String?   @default(uuid())
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  RateLimiting RateLimiting[]
-  Request      Request[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Request   Request[]
 }
 
 model Request {
@@ -50,26 +50,26 @@ model Request {
 
 // Sprate Rate limiting for each user of client if needed
 model RateLimiting {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   requestId String
-  userId    String
-
+  user_code String
   rate      Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   Request Request @relation(fields: [requestId], references: [id])
-  User    User    @relation(fields: [userId], references: [id])
 
-  @@unique([userId, requestId])
+  @@unique([user_code, requestId])
 }
 
 model RequestLog {
   id         String   @id @default(cuid())
-  requestId  String
+  requestId  String   @default("no-request-id")
   requestUrl String
   forwardUrl String
   response   String
+  statusCode Int
+  comment    String?
   duration   Int
   userId     String
   createdAt  DateTime @default(now())
