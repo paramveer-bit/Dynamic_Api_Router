@@ -17,6 +17,17 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
     if (!user_code || !secret) {
         throw new ApiError(400, "Invalid request")
     }
+    console.log(secret)
+    // Find user with this secret
+    const user = await PrismaClient.user.findFirst({
+        where: {
+            secret: secret.toString()
+        }
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
 
     // Find the reuquest stored in database
     const request = await PrismaClient.request.findFirst({

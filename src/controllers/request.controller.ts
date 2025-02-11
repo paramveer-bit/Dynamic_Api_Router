@@ -7,11 +7,10 @@ import { z } from "zod"
 
 
 const newRequestSchema = z.object({
-    requestUrl: z.string().url({ message: "Invalid URL" }),
+    requestUrl: z.string(),
     forwardUrl: z.string().url({ message: "Invalid URL" }),
     rateLimiting: z.boolean().optional(),
     defaultRate: z.number().optional(),
-    user_id: z.string(),
     caching: z.boolean().optional(),
     cacheTime: z.number().optional()
 })
@@ -19,11 +18,16 @@ const newRequestSchema = z.object({
 // Requests
 const addNewRequest = asyncHandler(async (req: Request, res: Response) => {
 
-    const { requestUrl, forwardUrl, rateLimiting, defaultRate, user_id, caching, cacheTime } = newRequestSchema.parse(req.body)
-
+    const { requestUrl, forwardUrl, rateLimiting, defaultRate, caching, cacheTime } = req.body
+    const validatedData = newRequestSchema.safeParse({ requestUrl, forwardUrl, rateLimiting, defaultRate, caching, cacheTime })
+    if (!validatedData.success) {
+        throw new ApiError(400, validatedData.error.errors[0].message)
+    }
+    const user_id = req.user_id
+    if (!user_id) throw new ApiError(400, "Invalid User")
     if (forwardUrl.includes("sendhere")) throw new ApiError(400, "Invalid Forward URL")
 
-    const result = PrismaClient.request.create({
+    const result = await PrismaClient.request.create({
         data: {
             ownerId: user_id,
             requestUrl,
@@ -35,17 +39,16 @@ const addNewRequest = asyncHandler(async (req: Request, res: Response) => {
         }
     })
 
-
+    console.log(result)
     if (!result) throw new ApiError(500, "Internal Server Error")
-
-    const response = new ApiResponse("200", "Request Added Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Added Successfully",)
 
     res.status(200).json(response)
 })
 
 //Required auth
 const getAllRequests = asyncHandler(async (req: Request, res: Response) => {
-    const { user_id } = req.body
+    const user_id = req.user_id
 
 
     const result = await PrismaClient.request.findMany({
@@ -56,14 +59,14 @@ const getAllRequests = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "No Requests Found")
 
-    const response = new ApiResponse("200", "Requests Found", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Requests Found")
 
     res.status(200).json(response)
 })
 
 const deleteRequest = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id } = req.params
-
+    const { id } = req.params
+    if (!id) throw new ApiError(400, "Invalid Request. Id of rquest needed to delete")
     const result = await PrismaClient.request.delete({
         where: {
             id
@@ -72,13 +75,17 @@ const deleteRequest = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Deleted Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Deleted Successfully")
 
     res.status(200).json(response)
 })
 
 const findRequestById = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id } = req.params
+    const { id } = req.params
+    const user_id = req.user_id
+    if (!id) {
+        throw new ApiError(400, "Invalid Request. Id of rquest needed to find")
+    }
 
     const result = await PrismaClient.request.findUnique({
         where: {
@@ -88,7 +95,7 @@ const findRequestById = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Found", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Found")
 
     res.status(200).json(response)
 })
@@ -96,7 +103,9 @@ const findRequestById = asyncHandler(async (req: Request, res: Response) => {
 //To modify request like modify caching.cachatime, rateLimiting, defaultRate
 
 const modifyCacheTime = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id, cacheTime } = req.body
+    const { cacheTime } = req.body
+    const { id } = req.params
+    const user_id = req.user_id
     if (!id || !user_id || !cacheTime) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -119,13 +128,15 @@ const modifyCacheTime = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 const modifyDefaultRateLimit = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id, defaultRate } = req.body
+    const { defaultRate } = req.body
+    const { id } = req.params
+    const user_id = req.user_id
     if (!id || !user_id || !defaultRate) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -148,13 +159,14 @@ const modifyDefaultRateLimit = asyncHandler(async (req: Request, res: Response) 
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 const toggelRateLimiting = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id } = req.body
+    const user_id = req.user_id
+    const { id } = req.params
     if (!id || !user_id) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -176,13 +188,14 @@ const toggelRateLimiting = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 const toggelCaching = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id } = req.body
+    const user_id = req.user_id
+    const { id } = req.params
     if (!id || !user_id) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -204,14 +217,17 @@ const toggelCaching = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 //Modify banned user
 const AddBanUser = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id, bannedUser } = req.body
+    const { bannedUser } = req.body
+    const { id } = req.params
+
+    const user_id = req.user_id
     if (!id || !user_id || !bannedUser) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -221,6 +237,8 @@ const AddBanUser = asyncHandler(async (req: Request, res: Response) => {
     })
 
     if (!request) throw new ApiError(404, "Request not found")
+
+    if (request.bannedUser.includes(bannedUser)) throw new ApiError(400, "User already banned")
 
     const result = await PrismaClient.request.update({
         where: {
@@ -235,13 +253,16 @@ const AddBanUser = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 const RemoveBanUser = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id, bannedUser } = req.body
+    const { bannedUser } = req.body
+    const { id } = req.params
+
+    const user_id = req.user_id
     if (!id || !user_id || !bannedUser) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -251,6 +272,8 @@ const RemoveBanUser = asyncHandler(async (req: Request, res: Response) => {
     })
 
     if (!request) throw new ApiError(404, "Request not found")
+
+    if (!request.bannedUser.includes(bannedUser)) throw new ApiError(400, "User is not in banned list")
 
     const result = await PrismaClient.request.update({
         where: {
@@ -265,13 +288,14 @@ const RemoveBanUser = asyncHandler(async (req: Request, res: Response) => {
 
     if (!result) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Modified Successfully", JSON.stringify(result))
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
 
     res.status(200).json(response)
 })
 
 const getListOfBannedUsers = asyncHandler(async (req: Request, res: Response) => {
-    const { id, user_id } = req.body
+    const { id } = req.params
+    const user_id = req.user_id
     if (!id || !user_id) throw new ApiError(400, "Invalid Request")
 
     const request = await PrismaClient.request.findUnique({
@@ -282,7 +306,7 @@ const getListOfBannedUsers = asyncHandler(async (req: Request, res: Response) =>
 
     if (!request) throw new ApiError(404, "Request not found")
 
-    const response = new ApiResponse("200", "Request Found", JSON.stringify(request.bannedUser))
+    const response = new ApiResponse("200", request.bannedUser, "Request Found")
 
     res.status(200).json(response)
 })

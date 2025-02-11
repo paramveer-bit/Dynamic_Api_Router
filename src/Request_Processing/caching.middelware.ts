@@ -34,19 +34,21 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
             throw new ApiError(500, "Internal Server Error")
         }
         if (data != null) {
+            console.log(data)
 
             const response = JSON.parse(data)
+            console.log(response)
             await PrismaClient.requestLog.create({
                 data: {
                     requestUrl: req.originalUrl,
                     forwardUrl: "Cache Hit",
-                    response: response.status,
-                    statusCode: response.status,
+                    response: response.statusCode.toString(),
+                    statusCode: Number(response.statusCode),
                     duration: 0,
                     userId: user_code.toString()
                 }
             });
-            return res.status(response.status).send(response.data)
+            return res.status(response.statusCode).send(response.data)
         }
         next()
     })

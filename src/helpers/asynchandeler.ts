@@ -5,6 +5,7 @@ const asyncHandler = (reqHandler: any) => {
         try {
             await reqHandler(req, res, next);
         } catch (error) {
+            console.log(error)
             if (error instanceof ApiError) {
                 res.status(error.statusCode).json({
                     success: error.success,

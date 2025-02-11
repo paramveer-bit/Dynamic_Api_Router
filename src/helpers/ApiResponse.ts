@@ -1,12 +1,12 @@
 class ApiResponse {
     statusCode: string;
-    data: JSON;
+    data: any;
     message: string;
     success: boolean;
 
-    constructor(statusCode: string, data: string, message = "Success") {
+    constructor(statusCode: string, data: any, message = "Success") {
         this.statusCode = statusCode;
-        this.data = JSON.parse(data);
+        this.data = data;
         this.message = message;
         this.success = parseInt(statusCode) < 400;
     }

@@ -9,7 +9,7 @@ import { Request, Response, Router } from "express";
 const router = Router();
 
 const temp = async (req: Request, res: Response) => {
-    res.status(200).send("Hello, Server is running")
+    return
 }
 
 router.use(request_extractor)

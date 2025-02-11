@@ -38,7 +38,7 @@ model Request {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   caching      Boolean  @default(false)
-  cacheTime    Int?
+  cacheTime    Int?     @default(10)
   rateLimiting Boolean  @default(false)
   defaultRate  Int?
   bannedUser   String[]

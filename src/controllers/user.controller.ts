@@ -253,7 +253,7 @@ const resendOtp = asyncHandler(async (req: Request, res: Response) => {
     }
 
     // send response
-    const response = new ApiResponse("200", JSON.stringify({ message: "Otp sent successfully" }))
+    const response = new ApiResponse("200", "Otp sent successfully")
 
     res.status(200).json(response)
 
@@ -263,15 +263,25 @@ const signOut = asyncHandler(async (req: Request, res: Response) => {
 
     res.clearCookie("token")
 
-    const response = new ApiResponse("200", JSON.stringify({ message: "User signed out successfully" }))
+    const response = new ApiResponse("200", "User signed out successfully")
 
     res.status(200).json(response)
 
 })
 
 const isSignedIn = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
+    if (!user_id) {
+        throw new ApiError(400, "Invalid user")
+    }
 
-    const response = new ApiResponse("200", JSON.stringify({ "message": "User is signed in", "user_id": req.user_id }))
+    const user = await PrismaClient.user.findFirst({
+        where: {
+            id: user_id
+        }
+    })
+
+    const response = new ApiResponse("200", user, JSON.stringify({ "message": "User is signed in" }))
 
     res.status(200).json(response)
 

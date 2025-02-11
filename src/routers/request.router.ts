@@ -5,21 +5,20 @@ import { addNewRequest, getAllRequests, deleteRequest, findRequestById, modifyCa
 const router = Router();
 
 
-router.post("/addnewrequest", auth, addNewRequest);
-router.get("/getallrequests", auth, getAllRequests);
-router.delete("/deleterequest", auth, deleteRequest);
+router.post("/addnew", auth, addNewRequest);
+router.get("/getall", auth, getAllRequests);
+router.delete("/delete/:id", auth, deleteRequest);
+router.get("/get/:id", auth, findRequestById);
 
-router.get("/findrequestbyid", auth, findRequestById);
+router.post("/modifycachetime/:id", auth, modifyCacheTime);
+router.get("/toggelcaching/:id", auth, toggelCaching);
 
-router.post("/modifycachetime", auth, modifyCacheTime);
-router.post("/toggelcaching", auth, toggelCaching);
+router.get("/toggelratelimiting/:id", auth, toggelRateLimiting);
+router.post("/modifyratelimit/:id", auth, modifyDefaultRateLimit);
 
-router.post("/toggelratelimiting", auth, toggelRateLimiting);
-router.post("/modifydefaultratelimit", auth, modifyDefaultRateLimit);
-
-router.post("/addbanuser", auth, AddBanUser);
-router.post("/removebanuser", auth, RemoveBanUser);
-router.get("/getlistofbannedusers", auth, getListOfBannedUsers);
+router.post("/addbanuser/:id", auth, AddBanUser);
+router.post("/removebanuser/:id", auth, RemoveBanUser);
+router.get("/getlistofbannedusers/:id", auth, getListOfBannedUsers);
 
 export default router;
 
