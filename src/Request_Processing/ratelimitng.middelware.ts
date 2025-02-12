@@ -13,7 +13,7 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
     // check id ratelimitng is on
     const request = req.request
     if (request.rateLimit === false) {
-        next()
+        return next()
     }
     const user_code = req.user_code
     let limit = request.default
@@ -55,10 +55,12 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
         if (!replies || replies[0] > limit) {
             await PrismaClient.requestLog.create({
                 data: {
+                    requestId: request.id,
                     requestUrl: req.originalUrl,
                     forwardUrl: request.forwardUrl,
                     statusCode: 429,
-                    response: "Rate Limit Exceeded",
+                    comment: "Rate Limit Exceeded",
+                    response: "NIL",
                     duration: 0,
                     userId: user_code.toString()
                 }
@@ -68,17 +70,20 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
     } catch (err) {
         await PrismaClient.requestLog.create({
             data: {
+                requestId: request.id,
                 requestUrl: req.originalUrl,
                 forwardUrl: request.forwardUrl,
-                response: "Internal Server Error",
+                response: "NIL",
+                comment: "Error in Redis RateLimiting. Reuqest is forwarded to the server. Redis is skipped",
                 statusCode: 500,
                 duration: 0,
                 userId: user_code.toString()
             }
         });
-        throw new ApiError(500, "Internal Server Error");
+        return next()
     }
-    next()
+    console.log("Rate limit passed")
+    return next()
 
 })
 

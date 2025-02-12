@@ -3,8 +3,6 @@ import ApiError from "../helpers/ApiError";
 import ApiResponse from "../helpers/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import PrismaClient from "../prismaClient/index"
-import { z } from "zod"
-import RedisClient from "../Redis/redis.client"
 
 
 
@@ -42,8 +40,9 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
         await PrismaClient.requestLog.create({
             data: {
                 requestUrl: requestedUrl,
-                forwardUrl: "Not forwarded",
+                forwardUrl: "NIL",
                 response: "Request not found",
+                comment: "No request found in the database with given secret and requested url",
                 statusCode: 404,
                 duration: 0,
                 userId: user_code.toString()
@@ -55,9 +54,11 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
     if (request.bannedUser.includes(user_code.toString())) {
         await PrismaClient.requestLog.create({
             data: {
+                requestId: request.id,
                 requestUrl: requestedUrl,
-                forwardUrl: "Not forwarded",
+                forwardUrl: "NIL",
                 response: "User is banned",
+                comment: "Request is not forwared. User is banned",
                 statusCode: 403,
                 duration: 0,
                 userId: user_code.toString()
@@ -68,7 +69,8 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
 
     req.request = request
     req.user_code = user_code.toString()
-    next()
+    console.log("Request extracted")
+    return next()
 
 })
 

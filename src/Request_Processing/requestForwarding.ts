@@ -1,131 +1,97 @@
-import { Request, Response, NextFunction } from "express";
-import { createProxyMiddleware, Options } from 'http-proxy-middleware';
+import { Request, Response } from "express";
 import ApiError from "../helpers/ApiError";
 import PrismaClient from "../prismaClient/index";
 import RedisClient from "../Redis/redis.client";
-import { ClientRequest, IncomingMessage, ServerResponse } from "http";
-import { Socket } from "net";
-import exp from "constants";
+import axios from "axios";
+import asyncHandler from "../helpers/asynchandeler";
 
-const request_forwarding = (requ: Request, resu: Response, next: NextFunction) => {
-    const user_code = requ.user_code;
-    const request = requ.request;
+interface CacheableResponse {
+    status: number;
+    headers: any;
+    body: any;
+    message: string;
+}
+
+
+
+const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
+    console.log("Request received from client");
+    const user_code = req.user_code;
+    const request = req.request;
+    // console.log(requ.body)
 
     if (!user_code) {
-        return next(new ApiError(400, "Invalid request: User code missing"));
+        throw (new ApiError(400, "Invalid request: User code missing"));
     }
 
     if (!request || !request.forwardUrl) {
-        return next(new ApiError(400, "Invalid request configuration"));
+        throw (new ApiError(400, "Invalid request configuration"));
     }
 
-    const proxyOptions: Options = {
-        target: request.forwardUrl,
-        changeOrigin: true,
-        secure: false,// logLevel: 'debug', // For debugging, remove in production
-        pathRewrite: function (path, requ) {
-            console.log(path)
-            return path.replace('/api/send-message', '')
+    const options = {
+        method: req.method,
+        url: request.forwardUrl,
+        header: {
+            ...req.headers,
         },
-        ws: false,
-        timeout: 10000, // 10 seconds
-        selfHandleResponse: true,
+        data: req.body,
+        params: req.query
+    }
+    console.log(options);
+    console.log("--------------------------")
+    try {
+        const result = await axios(options);
 
-        on: {
-            proxyReq: (proxyReq: ClientRequest, req: IncomingMessage, res: ServerResponse) => {
-                const expressReq = req as Request; // Cast to Express Request type
+        //save data in cache if caching is enabled
 
-                proxyReq.setHeader('user_code', user_code);
-                if (req.headers.authorization) {
-                    proxyReq.setHeader('authorization', req.headers.authorization);
-                }
-                proxyReq.setHeader('connection', 'close');
-                proxyReq.removeHeader('postman-token');
-                proxyReq.setHeader('user-agent', 'api-router');
-
-                if (requ.body) {
-                    const bodyData = JSON.stringify(requ.body);
-                    proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
-                    proxyReq.write(bodyData);
-                }
-            },
-
-            proxyRes: async (proxyRes: IncomingMessage, req: IncomingMessage, res: ServerResponse) => {
-                let responseBody = '';
-                proxyRes.on('data', (chunk) => {
-                    responseBody += chunk;
-                });
-
-                proxyRes.on('end', async () => {
-                    try {
-                        let parsedResponseBody;
-                        try {
-                            parsedResponseBody = JSON.parse(responseBody);
-                        } catch {
-                            parsedResponseBody = responseBody;
-                        }
-
-                        // Caching logic
-                        if (request.caching === true) {
-                            const cacheTime = isNaN(parseInt(request.cacheTime, 10)) ? 60 : parseInt(request.cacheTime, 10);
-                            const cacheKey = `cache:${request.ownerId}:${req.url}:${user_code}`;
-
-                            try {
-                                await RedisClient.setex(cacheKey, cacheTime, JSON.stringify(parsedResponseBody));
-                                console.log(`Cached response for ${req.url} with key ${cacheKey}`);
-                            } catch (redisError) {
-                                console.error("Redis caching error:", redisError);
-                            }
-                        }
-
-                        // Prisma logging
-                        try {
-                            await PrismaClient.requestLog.create({
-                                data: {
-                                    requestUrl: req.url || "error in extracting url",
-                                    forwardUrl: request.forwardUrl,
-                                    response: proxyRes.statusMessage ?? "OK",
-                                    statusCode: proxyRes.statusCode ?? 500,
-                                    duration: 0,
-                                    userId: user_code.toString()
-                                }
-                            });
-                            console.log(`Logged request to Prisma`);
-                        } catch (prismaError) {
-                            console.error("Prisma logging error:", prismaError);
-                        }
-
-                        // ✅ Ensure response is sent only once
-                        if (!res.writableEnded) {
-                            res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
-                            res.end(parsedResponseBody);
-                        }
-                    } catch (error) {
-                        console.error("Error in onProxyRes:", error);
-                        if (!res.writableEnded) {
-                            res.writeHead(500, { "Content-Type": "application/json" });
-                            res.end(JSON.stringify({ error: "Internal Server Error" }));
-                        }
-                    }
-                });
-            },
-
-            error: (err: Error, req: IncomingMessage, res: ServerResponse | Socket) => {
-                console.error("Proxy error:", err);
-                if (res instanceof ServerResponse) {
-                    if (!res.writableEnded) {
-                        res.writeHead(500, { "Content-Type": "application/json" });
-                        res.end(JSON.stringify({ error: "Proxy error" }));
-                    }
-                } else {
-                    res.end("Proxy error");
-                }
+        if (request.caching && req.method === "GET") {
+            const cache_response = {
+                status: result.status,
+                headers: result.headers,
+                body: result.data
             }
+            const key = `cache:${request.ownerId}:${req.url}:${user_code}`
+            RedisClient.setex(key, request.cacheTime, JSON.stringify(cache_response));
         }
-    };
 
-    const proxy = createProxyMiddleware(proxyOptions);
-    proxy(requ, resu, next);
-};
+        //save request log
+        await PrismaClient.requestLog.create({
+            data: {
+                requestId: request.id,
+                requestUrl: req.originalUrl,
+                forwardUrl: request.forwardUrl,
+                response: JSON.stringify(result.data),
+                comment: "Request forwarded to the server. And response is saved in the database",
+                statusCode: result.status,
+                duration: 0,
+                userId: user_code.toString()
+            }
+        });
+
+        //send response to client
+        return res.status(result.status).send(result.data);
+
+
+
+    } catch (error) {
+        //save request log
+        await PrismaClient.requestLog.create({
+            data: {
+                requestId: request.id,
+                requestUrl: req.originalUrl,
+                forwardUrl: request.forwardUrl,
+                response: "NIL",
+                comment: "Error in forwarding request to the server",
+                statusCode: 500,
+                duration: 0,
+                userId: user_code.toString()
+            }
+        });
+        console.log(error);
+        throw new ApiError(500, "Internal Server Error While processing request by axios");
+    }
+
+
+});
 
 export default request_forwarding;

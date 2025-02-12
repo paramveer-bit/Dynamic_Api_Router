@@ -8,19 +8,16 @@ import { Request, Response, Router } from "express";
 
 const router = Router();
 
-const temp = async (req: Request, res: Response) => {
-    return
-}
+
 
 router.use(request_extractor)
-router.use(caching)
 router.use(ratelimiting)
-router.use(request_forwarding)
+router.use(caching)
 
-router.get("/", temp)
-router.post("/", temp)
-router.put("/", temp)
-router.delete("/", temp)
+router.get("/*", request_forwarding)
+router.post("/*", request_forwarding)
+router.put("/*", request_forwarding)
+router.delete("/*", request_forwarding)
 
 
 

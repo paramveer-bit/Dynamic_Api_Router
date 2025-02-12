@@ -1,17 +1,22 @@
 import asyncHandler from "../helpers/asynchandeler";
 import ApiError from "../helpers/ApiError";
-import ApiResponse from "../helpers/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import PrismaClient from "../prismaClient/index"
-import { z } from "zod"
 import RedisClient from "../Redis/redis.client"
+interface CacheableResponse {
+    status: number;
+    headers: any;
+    body: any;
+    message: string;
+}
 
 
 const caching = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
     const request = req.request
-    if (request.caching === false) {
-        next()
+    if (request.caching === false || req.method !== "GET") {
+        console.log("cahching is false")
+        return next()
     }
     const user_code = req.user_code
     if (!user_code) {
@@ -23,34 +28,39 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
         if (err) {
             await PrismaClient.requestLog.create({
                 data: {
+                    requestId: request.id,
                     requestUrl: req.originalUrl,
-                    forwardUrl: "Not forwarded",
-                    response: "Internal Server Error",
+                    forwardUrl: "NIL",
+                    comment: "Error in Redis. Reuqest is forwarded to the server. Redis is skipped",
+                    response: "NIL",
                     statusCode: 500,
                     duration: 0,
                     userId: user_code.toString()
                 }
             });
-            throw new ApiError(500, "Internal Server Error")
+            return next()
         }
         if (data != null) {
-            console.log(data)
+            // console.log(data)
 
-            const response = JSON.parse(data)
-            console.log(response)
+            const response: CacheableResponse = JSON.parse(data)
+            // console.log(response)
             await PrismaClient.requestLog.create({
                 data: {
+                    requestId: request.id,
                     requestUrl: req.originalUrl,
-                    forwardUrl: "Cache Hit",
-                    response: response.statusCode.toString(),
-                    statusCode: Number(response.statusCode),
+                    forwardUrl: "NIL",
+                    comment: "Cache Hit for the request. With specific secret:requestId:User_Code",
+                    response: JSON.stringify(response.body),
+                    statusCode: Number(response.status),
                     duration: 0,
                     userId: user_code.toString()
                 }
             });
-            return res.status(response.statusCode).send(response.data)
+            return res.set(response.headers).status(response.status).send(response.body)
         }
-        next()
+        console.log("Cache Miss")
+        return next()
     })
 
 })
