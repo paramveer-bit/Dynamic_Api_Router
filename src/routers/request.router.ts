@@ -1,6 +1,6 @@
 import { Router } from "express";
 import auth from "../middelwares/auth.middelware";
-import { addNewRequest, getAllRequests, deleteRequest, findRequestById, modifyCacheTime, modifyDefaultRateLimit, toggelRateLimiting, toggelCaching, AddBanUser, RemoveBanUser, getListOfBannedUsers } from "../controllers/request.controller";
+import { addNewRequest, getAllRequests, update_request, deleteRequest, findRequestById, modifyCacheTime, modifyDefaultRateLimit, toggelRateLimiting, toggelCaching, AddBanUser, RemoveBanUser, getListOfBannedUsers } from "../controllers/request.controller";
 
 const router = Router();
 
@@ -9,6 +9,7 @@ router.post("/addnew", auth, addNewRequest);
 router.get("/getall", auth, getAllRequests);
 router.delete("/delete/:id", auth, deleteRequest);
 router.get("/get/:id", auth, findRequestById);
+router.put("/update/:id", auth, update_request);
 
 router.post("/modifycachetime/:id", auth, modifyCacheTime);
 router.get("/toggelcaching/:id", auth, toggelCaching);

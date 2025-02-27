@@ -114,7 +114,9 @@ const signIn = asyncHandler(async (req: Request, res: Response) => {
     //store in cookieParser
     res.cookie("token", token, {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none",
+        secure: true,
+        expires: new Date(Date.now() + 86400000), // Expire in 1 day
     })
 
 

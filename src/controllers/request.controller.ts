@@ -100,6 +100,47 @@ const findRequestById = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json(response)
 })
 
+const update_request = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params
+    const user_id = req.user_id
+    const { requestUrl, forwardUrl, rateLimiting, defaultRate, caching, cacheTime, bannedUser } = req.body
+    if (!id || !user_id) throw new ApiError(400, "Invalid Request")
+
+    const request = await PrismaClient.request.findUnique({
+        where: {
+            id, ownerId: user_id
+        }
+    })
+
+    if (!request) throw new ApiError(404, "Request not found")
+
+    const updatedData: any = {};
+    if (requestUrl !== undefined) updatedData.requestUrl = requestUrl;
+    if (forwardUrl !== undefined) updatedData.forwardUrl = forwardUrl;
+    if (rateLimiting !== undefined) updatedData.rateLimiting = rateLimiting;
+    if (defaultRate !== undefined) updatedData.defaultRate = defaultRate;
+    if (caching !== undefined) updatedData.caching = caching;
+    if (cacheTime !== undefined) updatedData.cacheTime = cacheTime;
+    if (bannedUser !== undefined) {
+        updatedData.bannedUser = bannedUser
+    }
+
+    const result = await PrismaClient.request.update({
+        where: {
+            id,
+            ownerId: user_id
+        },
+        data: updatedData
+    });
+
+    if (!result) throw new ApiError(404, "Request not found")
+
+    const response = new ApiResponse("200", result, "Request Modified Successfully")
+
+    res.status(200).json(response)
+
+})
+
 //To modify request like modify caching.cachatime, rateLimiting, defaultRate
 
 const modifyCacheTime = asyncHandler(async (req: Request, res: Response) => {
@@ -313,4 +354,4 @@ const getListOfBannedUsers = asyncHandler(async (req: Request, res: Response) =>
 
 
 
-export { addNewRequest, getAllRequests, deleteRequest, findRequestById, modifyCacheTime, modifyDefaultRateLimit, toggelRateLimiting, toggelCaching, AddBanUser, RemoveBanUser, getListOfBannedUsers }
+export { addNewRequest, getAllRequests, deleteRequest, findRequestById, modifyCacheTime, modifyDefaultRateLimit, toggelRateLimiting, toggelCaching, AddBanUser, RemoveBanUser, getListOfBannedUsers, update_request }

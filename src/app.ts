@@ -7,8 +7,10 @@ import exp from "constants"
 
 const app = express()
 
+app.use(cookieParser())
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: "http://localhost:3000",
     credentials: true
 }))
 
@@ -18,10 +20,9 @@ app.get("/", (req, res) => {
 )
 
 
-app.use(express.json({ limit: "16kb" }))
-app.use(express.urlencoded({ extended: true, limit: "16kb" }))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true, limit: "10mb" }))
 app.use(express.static("public"))
-app.use(cookieParser())
 
 // Router import
 import userRouter from "./routers/user.router"
