@@ -28,6 +28,7 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
         throw (new ApiError(400, "Invalid request configuration"));
     }
 
+
     const options = {
         method: req.method,
         url: request.forwardUrl,
@@ -64,7 +65,8 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
                 comment: "Request forwarded to the server. And response is saved in the database",
                 statusCode: result.status,
                 duration: 0,
-                userId: user_code.toString()
+                userId: user_code.toString(),
+                type: req.method
             }
         });
 
@@ -84,7 +86,8 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
                 comment: "Error in forwarding request to the server",
                 statusCode: 500,
                 duration: 0,
-                userId: user_code.toString()
+                userId: user_code.toString(),
+                type: req.method
             }
         });
         console.log(error);

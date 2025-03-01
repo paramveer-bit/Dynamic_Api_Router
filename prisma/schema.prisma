@@ -69,6 +69,7 @@ model RequestLog {
   forwardUrl String
   response   String
   statusCode Int
+  type       String
   comment    String?
   duration   Int
   userId     String

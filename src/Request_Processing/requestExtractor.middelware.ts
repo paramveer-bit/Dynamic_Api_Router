@@ -45,7 +45,8 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 comment: "No request found in the database with given secret and requested url",
                 statusCode: 404,
                 duration: 0,
-                userId: user_code.toString()
+                userId: user_code.toString(),
+                type: req.method
             }
         })
         throw new ApiError(404, "Request not found")
@@ -61,7 +62,8 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 comment: "Request is not forwared. User is banned",
                 statusCode: 403,
                 duration: 0,
-                userId: user_code.toString()
+                userId: user_code.toString(),
+                type: req.method
             }
         })
         throw new ApiError(403, "User is banned")

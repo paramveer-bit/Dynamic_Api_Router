@@ -35,7 +35,8 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
                     response: "NIL",
                     statusCode: 500,
                     duration: 0,
-                    userId: user_code.toString()
+                    userId: user_code.toString(),
+                    type: req.method
                 }
             });
             return next()
@@ -54,7 +55,8 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
                     response: JSON.stringify(response.body),
                     statusCode: Number(response.status),
                     duration: 0,
-                    userId: user_code.toString()
+                    userId: user_code.toString(),
+                    type: "GET"
                 }
             });
             return res.set(response.headers).status(response.status).send(response.body)

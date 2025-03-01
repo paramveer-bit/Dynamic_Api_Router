@@ -62,7 +62,8 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                     comment: "Rate Limit Exceeded",
                     response: "NIL",
                     duration: 0,
-                    userId: user_code.toString()
+                    userId: user_code.toString(),
+                    type: req.method
                 }
             });
             throw new ApiError(429, "Rate Limit Exceeded");
@@ -77,7 +78,8 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 comment: "Error in Redis RateLimiting. Reuqest is forwarded to the server. Redis is skipped",
                 statusCode: 500,
                 duration: 0,
-                userId: user_code.toString()
+                userId: user_code.toString(),
+                type: req.method
             }
         });
         return next()
