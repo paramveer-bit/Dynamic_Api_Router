@@ -67,7 +67,7 @@ model RequestLog {
   requestId  String   @default("no-request-id")
   requestUrl String
   forwardUrl String
-  response   String
+  response   Json
   statusCode Int
   type       String
   comment    String?

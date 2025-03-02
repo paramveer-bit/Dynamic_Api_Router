@@ -3,7 +3,6 @@ import ApiError from "../helpers/ApiError";
 import ApiResponse from "../helpers/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import PrismaClient from "../prismaClient/index"
-import { z } from "zod"
 import RedisClient from "../Redis/redis.client"
 
 

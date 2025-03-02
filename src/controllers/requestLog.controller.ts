@@ -90,11 +90,14 @@ const last24Hours = asyncHandler(async (req: Request, res: Response) => {
 
 })
 
-const totaluser = asyncHandler(async (req: Request, res: Response) => {
+
+
+const allData = asyncHandler(async (req: Request, res: Response) => {
     const user_id = req.user_id
 
     if (!user_id) throw new ApiError(400, "Invalid Request")
 
+    //-------------------------------Total users
     const result = await PrismaClient.requestLog.groupBy({
         by: ['userId'],
         where: {
@@ -105,35 +108,43 @@ const totaluser = asyncHandler(async (req: Request, res: Response) => {
         }
     })
 
-    const response = new ApiResponse("200", { total_user: result.length }, "Requests Found")
+    //-------------------------------------users in last 24hr--------------------------------------------
+    const active_user = await PrismaClient.requestLog.groupBy({
+        by: ['userId'],
+        where: {
+            Request: {
+                ownerId: user_id
+            },
+            createdAt: {
+                gte: new Date(new Date().getTime() - (24 * 60 * 60 * 1000))
+            }
+        }
+    })
 
-    res.status(200).json(response)
-
-})
-
-const totalroutes = asyncHandler(async (req: Request, res: Response) => {
-    const user_id = req.user_id
-
-    if (!user_id) throw new ApiError(400, "Invalid Request")
-
-    const result = await PrismaClient.request.groupBy({
+    //-------------------------------Total total_routes----------------------------------------
+    const total_routes = await PrismaClient.request.groupBy({
         by: ['id'],
         where: {
             ownerId: user_id
         }
     })
 
-    const response = new ApiResponse("200", { total_routes: result.length }, "Requests Found")
+    const new_routes_this_month = await PrismaClient.request.groupBy({
+        by: ['id'],
+        where: {
+            ownerId: user_id,
+            createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+            }
+        }
+    })
 
-    res.status(200).json(response)
-})
 
-const totalRequestsThisMonth = asyncHandler(async (req: Request, res: Response) => {
-    const user_id = req.user_id
 
-    if (!user_id) throw new ApiError(400, "Invalid Request")
 
-    const result = await PrismaClient.requestLog.findMany({
+    // ------------------------------Total Requests This Month-------------------------------------------
+    const month_reuests = await PrismaClient.requestLog.findMany({
         where: {
             Request: {
                 ownerId: user_id
@@ -142,13 +153,42 @@ const totalRequestsThisMonth = asyncHandler(async (req: Request, res: Response) 
                 gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
                 lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
             }
-
         }
     })
-    const response = new ApiResponse("200", { total: result.length }, "Requests Found")
+    const previous_month_reuests = await PrismaClient.requestLog.findMany({
+        where: {
+            Request: {
+                ownerId: user_id
+            },
+            createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+                lte: new Date(new Date().getFullYear(), new Date().getMonth(), 0)
+            }
+        }
+    })
+
+    const resul = {
+        total_users: {
+            total_user: result.length
+        },
+        routes: {
+            total_routes: total_routes.length,
+            increase: new_routes_this_month.length
+        },
+        active_user: {
+            total_active_user: active_user.length
+        },
+        requests: {
+            this_month: month_reuests.length,
+            prev_month: previous_month_reuests.length
+        }
+    }
+
+    const response = new ApiResponse("200", resul, "Requests Found")
 
     res.status(200).json(response)
+
 })
 
 
-export { getRequestLogByrequestId, totalRequestsThisMonth, totalroutes, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, totaluser }
+export { getRequestLogByrequestId, allData, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours }

@@ -44,8 +44,8 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
         const result = await axios(options);
 
         //save data in cache if caching is enabled
-
         if (request.caching && req.method === "GET") {
+            console.log("Caching enabled for this request");
             const cache_response = {
                 status: result.status,
                 headers: result.headers,
@@ -61,7 +61,7 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
                 requestId: request.id,
                 requestUrl: req.originalUrl,
                 forwardUrl: request.forwardUrl,
-                response: JSON.stringify(result.data),
+                response: result.data,
                 comment: "Request forwarded to the server. And response is saved in the database",
                 statusCode: result.status,
                 duration: 0,
