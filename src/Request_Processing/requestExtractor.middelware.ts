@@ -3,6 +3,7 @@ import ApiError from "../helpers/ApiError";
 import ApiResponse from "../helpers/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import PrismaClient from "../prismaClient/index"
+import ReuestExtractor from "../helpers/routeMatcher"
 
 
 
@@ -28,14 +29,14 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
     }
 
     // Find the reuquest stored in database
-    const request = await PrismaClient.request.findFirst({
+    const requests = await PrismaClient.request.findMany({
         where: {
-            requestUrl: requestedUrl,
             User: {
                 secret: secret.toString()
             }
         }
     })
+    const request = ReuestExtractor(requestedUrl, requests)
     if (!request) {
         await PrismaClient.requestLog.create({
             data: {
