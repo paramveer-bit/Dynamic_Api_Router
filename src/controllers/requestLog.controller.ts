@@ -448,6 +448,84 @@ const ApiEndPointsUtilization = asyncHandler(async (req: Request, res: Response)
 
 })
 
+const EndPointsResponseTime = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
+
+    const days = z.number().parse(Number(req.query.days))
+
+    if (!user_id) throw new ApiError(400, "Invalid Request")
+
+    let dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+    // Start of the day
+    let startOfDay = new Date(dateThreshold);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const result = await PrismaClient.requestLog.groupBy({
+        by: ['requestId'],
+        _avg: { duration: true },
+        where: {
+            Request: { ownerId: user_id },
+            createdAt: { gte: startOfDay },
+        }
+    });
+
+    const requests = await PrismaClient.request.findMany({
+        where: {
+            ownerId: user_id
+        }
+    })
+
+    const formatted = requests.map((request) => {
+        const temp = result.find((log) => request.id === log.requestId);
+        return {
+            endpoint: request?.requestUrl,
+            responseTime: temp?._avg?.duration || 0
+        };
+    });
+
+    const response = new ApiResponse("200", formatted, "Requests Found")
+
+    res.status(200).json(response)
+
+})
+
+const statusCodes = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
+
+    const days = z.number().parse(Number(req.query.days))
+
+    if (!user_id) throw new ApiError(400, "Invalid Request")
+
+    let dateThreshold = new Date()
+    dateThreshold.setDate(dateThreshold.getDate() - days)
+    // Start of the day
+    let startOfDay = new Date(dateThreshold)
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const result = await PrismaClient.requestLog.groupBy({
+        by: ['statusCode'],
+        _count: { id: true },
+        where: {
+            Request: { ownerId: user_id },
+            createdAt: { gte: startOfDay },
+        }
+    })
+
+    // Grouppoin Status codes
+    const grouping = result.reduce((acc: { [key: string]: number }, log) => {
+        const temp = ((log.statusCode - log.statusCode % 100) / 100);
+        acc[temp] = (acc[temp] || 0) + log._count.id;
+        return acc;
+    }, {});
+
+    const formatted = Object.entries(grouping).map(([statusCode, count]) => ({ statusCode: statusCode.toString() + "xx", count }));
+
+    const response = new ApiResponse("200", formatted, "Requests Found")
+
+    res.status(200).json(response)
+})
 
 
-export { ApiEndPointsUtilization, getRequestLogByrequestId, allData, apiUsageChart, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
+
+export { statusCodes, ApiEndPointsUtilization, EndPointsResponseTime, getRequestLogByrequestId, allData, apiUsageChart, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
