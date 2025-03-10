@@ -195,7 +195,8 @@ const allData = asyncHandler(async (req: Request, res: Response) => {
 const DataByDays = asyncHandler(async (req: Request, res: Response) => {
     const user_id = req.user_id
 
-    const days = z.number().parse(req.query.days)
+    const days = z.number().parse(Number(req.query.days))
+    console.log(days)
 
     if (!user_id) throw new ApiError(400, "Invalid Request")
 
@@ -358,5 +359,95 @@ const DataByDays = asyncHandler(async (req: Request, res: Response) => {
 
 })
 
+const apiUsageChart = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
 
-export { getRequestLogByrequestId, allData, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
+    const days = z.number().parse(Number(req.query.days))
+
+    if (!user_id) throw new ApiError(400, "Invalid Request")
+
+    let dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+    // Start of the day
+    let startOfDay = new Date(dateThreshold);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const result = await PrismaClient.requestLog.groupBy({
+        by: ['createdAt'],
+        _count: {
+            id: true
+        },
+        where: {
+            Request: {
+                ownerId: user_id
+            },
+            createdAt: {
+                gte: startOfDay,
+            }
+        },
+        orderBy: {
+            createdAt: 'asc'
+        }
+
+    })
+
+    const groupedLogs = result.reduce((acc: { [key: string]: number }, log) => {
+        const date = log.createdAt.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+    }, {});
+
+    const formatted = Object.entries(groupedLogs).map(([timestamp, requests]) => ({ timestamp, requests }));
+
+
+    const response = new ApiResponse("200", formatted, "Requests Found")
+
+    res.status(200).json(response)
+
+})
+
+const ApiEndPointsUtilization = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
+
+    const days = z.number().parse(Number(req.query.days))
+
+    if (!user_id) throw new ApiError(400, "Invalid Request")
+
+    let dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+    // Start of the day
+    let startOfDay = new Date(dateThreshold);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const result = await PrismaClient.requestLog.groupBy({
+        by: ['requestId'],
+        _count: { id: true },
+        where: {
+            Request: { ownerId: user_id },
+            createdAt: { gte: startOfDay },
+        }
+    });
+
+    const requests = await PrismaClient.request.findMany({
+        where: {
+            ownerId: user_id
+        }
+    })
+
+    const formatted = requests.map((request) => {
+        const temp = result.find((log) => request.id === log.requestId);
+        return {
+            endpoint: request?.requestUrl,
+            requests: temp?._count?.id || 0
+        };
+    });
+
+    const response = new ApiResponse("200", formatted, "Requests Found")
+
+    res.status(200).json(response)
+
+})
+
+
+
+export { ApiEndPointsUtilization, getRequestLogByrequestId, allData, apiUsageChart, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
