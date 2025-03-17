@@ -73,6 +73,9 @@ model RequestLog {
   comment    String?
   duration   Int
   userId     String
+  browser    String?
+  os         String?
+  ip         String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

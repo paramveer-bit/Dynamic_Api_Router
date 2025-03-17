@@ -4,11 +4,23 @@ import ApiResponse from "../helpers/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import PrismaClient from "../prismaClient/index"
 import ReuestExtractor from "../helpers/routeMatcher"
+const UAParser = require("ua-parser-js");
 
 
 
 
 const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Extractin device details
+
+    const userAgent = req.headers["user-agent"];
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
+
+    req.device = {
+        browser: result.browser.name,
+        os: result.os.name,
+        device: result.device.type
+    }
     var requestedUrl = req.path
     const { user_code, secret } = req.headers
     console.log(requestedUrl)
@@ -47,7 +59,9 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 statusCode: 404,
                 duration: 0,
                 userId: user_code.toString(),
-                type: req.method
+                type: req.method,
+                browser: req.device.browser,
+                os: req.device.os,
             }
         })
         throw new ApiError(404, "Request not found")
@@ -64,7 +78,9 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 statusCode: 403,
                 duration: 0,
                 userId: user_code.toString(),
-                type: req.method
+                type: req.method,
+                browser: req.device.browser,
+                os: req.device.os,
             }
         })
         throw new ApiError(403, "User is banned")

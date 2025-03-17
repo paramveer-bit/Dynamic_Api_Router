@@ -3,6 +3,8 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import exp from "constants"
 import PrismaClient from "./prismaClient/index"
+const UAParser = require("ua-parser-js");
+
 
 
 
@@ -16,6 +18,11 @@ app.use(cors({
 }))
 
 app.get("/", (req, res) => {
+    const userAgent = req.headers["user-agent"];
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
+    console.log(parser);
+    console.log(result);
     res.status(200).send("Hello, Server is running")
 }
 )
@@ -52,6 +59,8 @@ app.use("/api/v1/rateLimiting", rateLimitingRouter)
 //     userId: `user-${Math.floor(Math.random() * 1000)}`,
 //     createdAt: new Date(Date.now() - Math.floor(Math.random() * 1000000000)).toISOString(),
 //     updatedAt: new Date(Date.now() - Math.floor(Math.random() * 500000000)).toISOString(),
+//     browser: ["Chrome", "Firefox", "Edge", "Safari", "Opera"][Math.floor(Math.random() * 5)],
+//     os: ["Windows", "macOS", "Linux", "Android", "iOS"][Math.floor(Math.random() * 5)]
 // }));
 
 // const requestIds = [
@@ -63,6 +72,7 @@ app.use("/api/v1/rateLimiting", rateLimitingRouter)
 // const add = async (data: any) => {
 //     for (let i = 0; i < Math.floor(Math.random() * 10); i++) {
 //         try {
+//             data.userId = `user-${354}`;
 //             data.requestId = requestIds[Math.floor(Math.random() * requestIds.length)];
 //             data = JSON.parse(JSON.stringify(data));
 //             console.log(data);

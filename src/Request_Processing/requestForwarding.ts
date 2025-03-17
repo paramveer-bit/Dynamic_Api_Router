@@ -66,7 +66,9 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
                 statusCode: result.status,
                 duration: 0,
                 userId: user_code.toString(),
-                type: req.method
+                type: req.method,
+                browser: req.device?.browser,
+                os: req.device?.os
             }
         });
 
@@ -87,7 +89,9 @@ const request_forwarding = asyncHandler(async (req: Request, res: Response) => {
                 statusCode: 500,
                 duration: 0,
                 userId: user_code.toString(),
-                type: req.method
+                type: req.method,
+                browser: req.device?.browser,
+                os: req.device?.os
             }
         });
         console.log(error);

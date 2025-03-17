@@ -36,7 +36,9 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
                     statusCode: 500,
                     duration: 0,
                     userId: user_code.toString(),
-                    type: req.method
+                    type: req.method,
+                    browser: req.device?.browser,
+                    os: req.device?.os
                 }
             });
             return next()
@@ -56,7 +58,9 @@ const caching = asyncHandler(async (req: Request, res: Response, next: NextFunct
                     statusCode: Number(response.status),
                     duration: 0,
                     userId: user_code.toString(),
-                    type: "GET"
+                    type: "GET",
+                    browser: req.device?.browser,
+                    os: req.device?.os
                 }
             });
             return res.set(response.headers).status(response.status).send(response.body)

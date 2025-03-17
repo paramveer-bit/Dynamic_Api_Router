@@ -5,5 +5,10 @@ declare module 'express-serve-static-core' {
         user_id?: string;
         request?: any;
         user_code?: string;
+        device?: {
+            browser?: string;
+            os?: string;
+            device?: string;
+        }
     }
 }

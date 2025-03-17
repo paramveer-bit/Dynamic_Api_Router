@@ -62,7 +62,9 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                     response: "NIL",
                     duration: 0,
                     userId: user_code.toString(),
-                    type: req.method
+                    type: req.method,
+                    browser: req.device?.browser,
+                    os: req.device?.os
                 }
             });
             throw new ApiError(429, "Rate Limit Exceeded");
@@ -78,7 +80,9 @@ const temp = asyncHandler(async (req: Request, res: Response, next: NextFunction
                 statusCode: 500,
                 duration: 0,
                 userId: user_code.toString(),
-                type: req.method
+                type: req.method,
+                browser: req.device?.browser,
+                os: req.device?.os
             }
         });
         return next()
