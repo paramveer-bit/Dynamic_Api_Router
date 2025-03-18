@@ -1,4 +1,4 @@
-import { ApiEndPointsUtilization, userLast5Min, userActivityData, deviceDetails, userApiEndpoints, userDetailsByDays, last5Min, statusCodes, EndPointsResponseTime, getRequestLogByrequestId, apiUsageChart, allData, DataByDays, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours } from "../controllers/requestLog.controller"
+import { ApiEndPointsUtilization, routeSpecificData, userLast5Min, userActivityData, deviceDetails, userApiEndpoints, userDetailsByDays, last5Min, statusCodes, EndPointsResponseTime, getRequestLogByrequestId, apiUsageChart, allData, DataByDays, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours } from "../controllers/requestLog.controller"
 import { Router } from "express";
 import auth from "../middelwares/auth.middelware";
 
@@ -20,6 +20,7 @@ router.get("/userApiEndpoints", auth, userApiEndpoints)
 router.get("/deviceDetails", auth, deviceDetails)
 router.get("/userActivityData", auth, userActivityData)
 router.get("/userLast5Min", auth, userLast5Min)
+router.get("/routeSpecificData", auth, routeSpecificData)
 
 
 

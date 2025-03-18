@@ -548,6 +548,118 @@ const last5Min = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json(response)
 
 })
+const routeSpecificData = asyncHandler(async (req: Request, res: Response) => {
+    console.log("Requets recieved")
+    const user_id = req.user_id
+
+    const route_id = req.query.routeId
+    const days = z.number().parse(Number(req.query.days))
+
+    if (!user_id) throw new ApiError(400, "Invalid Request")
+
+    let dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+    // Start of the day
+    let startOfDay = new Date(dateThreshold);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    if (!route_id) throw new ApiError(400, "Invalid Request")
+
+    const route = await PrismaClient.request.findFirst({
+        where: {
+            id: route_id.toString(),
+            ownerId: user_id,
+        }
+    })
+
+    if (!route) throw new ApiError(404, "No Route Found with this Route id")
+
+    // Requests
+    const requests = await PrismaClient.requestLog.groupBy({
+        by: ['createdAt'],
+        _count: { id: true },
+        where: {
+            requestId: route_id.toString(),
+            createdAt: { gte: startOfDay },
+        }
+    })
+
+    // Errors
+    const errors = await PrismaClient.requestLog.groupBy({
+        by: ['createdAt'],
+        _count: { id: true },
+        where: {
+            requestId: route_id.toString(),
+            createdAt: { gte: startOfDay },
+            statusCode: { gt: 399 }
+        },
+        orderBy: {
+            createdAt: 'asc'
+        }
+    })
+
+    // Average Response Time
+    const avgResponseTime = await PrismaClient.requestLog.groupBy({
+        by: ['createdAt'],
+        _avg: { duration: true },
+        where: {
+            requestId: route_id.toString(),
+            createdAt: { gte: startOfDay },
+        }
+    })
+
+    // console.log(requests, errors, avgResponseTime)
+
+    const groupedErrors = errors.reduce((acc: { [key: string]: number }, log) => {
+        const date = log.createdAt.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        acc[date] = acc[date] || 0 + log._count.id;
+        return acc;
+    }, {});
+
+
+    const averageResponse = avgResponseTime.reduce((acc: { [key: string]: any }, log) => {
+        const date = log.createdAt.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        acc[date] = {
+            responseTime: log._avg.duration,
+            count: 1 + (acc[date]?.count || 0)
+        }
+        return acc;
+    }, {});
+
+    const groupedRequests = requests.reduce((acc: { [key: string]: number }, log) => {
+        const date = log.createdAt.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+        acc[date] = acc[date] || 0 + log._count.id;
+        return acc;
+    }, {});
+
+    // console.log(errors)
+
+    interface data {
+        requests: number,
+        errors: number,
+        avgResponseTime: number,
+        count: number
+    }
+    // console.log(errors)
+
+
+    const formatted = Object.entries(groupedRequests).map(([timestamp, data]) => {
+        return {
+            timestamp,
+            requests: data,
+            errors: groupedErrors[timestamp] || 0,
+            responseTime: Math.round(averageResponse[timestamp]?.responseTime / averageResponse[timestamp].count) || 0,
+        }
+    })
+
+
+    const response = new ApiResponse("200", formatted, "Requests Founded")
+
+    res.status(200).json(response)
+
+
+})
+
 
 // User Analytics Page Routes
 const userDetailsByDays = asyncHandler(async (req: Request, res: Response) => {
@@ -1005,4 +1117,4 @@ const userLast5Min = asyncHandler(async (req: Request, res: Response) => {
 
 
 
-export { statusCodes, userLast5Min, userActivityData, deviceDetails, userApiEndpoints, userDetailsByDays, last5Min, ApiEndPointsUtilization, EndPointsResponseTime, getRequestLogByrequestId, allData, apiUsageChart, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
+export { routeSpecificData, statusCodes, userLast5Min, userActivityData, deviceDetails, userApiEndpoints, userDetailsByDays, last5Min, ApiEndPointsUtilization, EndPointsResponseTime, getRequestLogByrequestId, allData, apiUsageChart, getRequestLogByUserId, getAllRequestsThisMonthByClientId, last24Hours, DataByDays }
