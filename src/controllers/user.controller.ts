@@ -280,6 +280,10 @@ const isSignedIn = asyncHandler(async (req: Request, res: Response) => {
     const user = await PrismaClient.user.findFirst({
         where: {
             id: user_id
+        },
+        select: {
+            email: true,
+            verified: true
         }
     })
 
@@ -346,5 +350,28 @@ const resetPasswordWhileLoggin = asyncHandler(async (req: Request, res: Response
 
 })
 
+const getApiKey = asyncHandler(async (req: Request, res: Response) => {
+    const user_id = req.user_id
+    if (!user_id) {
+        throw new ApiError(400, "Invalid user")
+    }
 
-export { signup, signIn, verifyUser, resendOtp, signOut, isSignedIn, resetPasswordWhileLoggin }
+    const user = await PrismaClient.user.findFirst({
+        where: {
+            id: user_id
+        },
+        select: {
+            secret: true,
+            email: true,
+            verified: true
+        }
+    })
+
+    const response = new ApiResponse("200", user, JSON.stringify({ "message": "User is signed in" }))
+
+    res.status(200).json(response)
+
+})
+
+
+export { signup, signIn, getApiKey, verifyUser, resendOtp, signOut, isSignedIn, resetPasswordWhileLoggin }
